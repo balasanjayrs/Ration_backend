@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Ration Dispenser</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Government Header -->
+    <header class="gov-header">
+
+        <img src="banner.png" alt="Government of Tamil Nadu">
+
+    </header>
+
+
+    <!-- Main Website -->
+    <main class="main-section">
+
+        <!-- Project Name -->
+        <div class="project-title">
+
+            <h1>SMART RATION</h1>
+
+            <h2>DISPENSER SYSTEM</h2>
+
+        </div>
+
+
+        <!-- Login Card -->
+        <div class="login-card">
+
+            <div class="login-header">
+
+                <h2>Welcome Back</h2>
+
+                <p>Login to access your ration account</p>
+
+            </div>
+
+
+            <form id="loginForm">
+
+                <div class="input-group">
+
+                    <label for="userId">User ID</label>
+
+                    <input
+                        type="text"
+                        id="userId"
+                        placeholder="Enter your User ID"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="input-group">
+
+                    <label for="password">Password</label>
+
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Enter your Password"
+                        required
+                    >
+
+                </div>
+
+
+                <button type="submit">
+                    LOGIN
+                </button>
+
+                <p id="errorMessage"></p>
+
+            </form>
+
+
+            <!-- Demo Account -->
+            <div class="demo-info">
+
+                <h3>Demo Account</h3>
+
+                <p>User ID: <b>user001</b></p>
+
+                <p>Password: <b>ration123</b></p>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Card Verification</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Government Header -->
+    <header class="gov-header">
+        <img src="banner.png" alt="Government of Tamil Nadu">
+    </header>
+
+    <!-- Logout Button -->
+    <button id="logoutButton" class="logout-button">
+        LOGOUT
+    </button>
+
+
+    <!-- Main Section -->
+    <main class="main-section">
+
+        <!-- Project Name -->
+        <div class="project-title">
+            <h1>SMART RATION</h1>
+            <h2>DISPENSER SYSTEM</h2>
+        </div>
+
+
+        <!-- ========================= -->
+        <!-- SMART CARD VERIFICATION -->
+        <!-- ========================= -->
+
+        <div class="verify-card">
+
+            <div class="verify-header">
+                <h2>Smart Card Verification</h2>
+                <p>Please scan your smart ration card</p>
+            </div>
+
+
+            <!-- Scan Area -->
+            <div class="scan-area" id="scanArea">
+
+                <div class="scan-icon">🪪</div>
+
+                <h3 id="scanTitle">
+                    Scan Smart Card
+                </h3>
+
+                <p id="scanText">
+                    Place your smart card on the scanner
+                </p>
+
+                <button
+                    type="button"
+                    id="scanButton">
+                    SCAN SMART CARD
+                </button>
+
+            </div>
+
+
+            <!-- Scanning Message -->
+            <div
+                class="scanning-message"
+                id="scanningMessage">
+
+                <div class="loader"></div>
+
+                <p>
+                    Scanning Smart Card...
+                </p>
+
+            </div>
+
+
+            <!-- ========================= -->
+            <!-- SMART CARD DETAILS -->
+            <!-- ========================= -->
+
+            <div
+                class="card-details"
+                id="cardDetails">
+
+                <div class="verified-title">
+                    <span>✓</span>
+                    Smart Card Verified
+                </div>
+
+                <h3>
+                    SMART CARD DETAILS
+                </h3>
+
+
+                <div class="detail-row">
+                    <span>Name</span>
+                    <strong>K. Kumar</strong>
+                </div>
+
+
+                <div class="detail-row">
+                    <span>Smart Card No.</span>
+                    <strong>1234 5678 9012</strong>
+                </div>
+
+
+                <div class="detail-row">
+                    <span>Card Type</span>
+                    <strong>PHH</strong>
+                </div>
+
+
+                <div class="detail-row">
+                    <span>Family Members</span>
+                    <strong>4</strong>
+                </div>
+
+
+                <div class="detail-row">
+                    <span>Address</span>
+                    <strong>Tiruchirappalli, Tamil Nadu</strong>
+                </div>
+
+
+                <div class="detail-row">
+                    <span>FPS Code</span>
+                    <strong>TRC-045</strong>
+                </div>
+
+
+                <div class="detail-row">
+                    <span>Status</span>
+                    <strong class="active-status">
+                        ACTIVE
+                    </strong>
+                </div>
+
+
+                <!-- Continue Button -->
+                <button
+                    type="button"
+                    class="continue-btn"
+                    id="continueButton">
+
+                    CONTINUE
+
+                </button>
+
+            </div>
+
+
+            <!-- ========================= -->
+            <!-- FAMILY MEMBERS SECTION -->
+            <!-- ========================= -->
+
+            <div
+                class="family-section"
+                id="familySection">
+
+                <div class="family-header">
+
+                    <h2>
+                        Family Members
+                    </h2>
+
+                    <p>
+                        Select the member whose fingerprint
+                        you want to verify
+                    </p>
+
+                </div>
+
+
+                <!-- Family Member 1 -->
+                <div class="family-member">
+
+                    <div class="member-info">
+
+                        <div class="member-icon">
+                            👨
+                        </div>
+
+                        <div>
+                            <h3>
+                                K. Kumar
+                            </h3>
+
+                            <p>
+                                Head of Family
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="select-member"
+                        data-member="K. Kumar">
+
+                        SELECT
+
+                    </button>
+
+                </div>
+
+
+                <!-- Family Member 2 -->
+                <div class="family-member">
+
+                    <div class="member-info">
+
+                        <div class="member-icon">
+                            👩
+                        </div>
+
+                        <div>
+                            <h3>
+                                S. Priya
+                            </h3>
+
+                            <p>
+                                Wife
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="select-member"
+                        data-member="S. Priya">
+
+                        SELECT
+
+                    </button>
+
+                </div>
+
+
+                <!-- Family Member 3 -->
+                <div class="family-member">
+
+                    <div class="member-info">
+
+                        <div class="member-icon">
+                            👦
+                        </div>
+
+                        <div>
+                            <h3>
+                                R. Rahul
+                            </h3>
+
+                            <p>
+                                Son
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="select-member"
+                        data-member="R. Rahul">
+
+                        SELECT
+
+                    </button>
+
+                </div>
+
+
+                <!-- Family Member 4 -->
+                <div class="family-member">
+
+                    <div class="member-info">
+
+                        <div class="member-icon">
+                            👧
+                        </div>
+
+                        <div>
+                            <h3>
+                                K. Divya
+                            </h3>
+
+                            <p>
+                                Daughter
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="select-member"
+                        data-member="K. Divya">
+
+                        SELECT
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- ========================= -->
+            <!-- FINGERPRINT SECTION -->
+            <!-- ========================= -->
+
+            <div
+                class="fingerprint-section"
+                id="fingerprintSection">
+
+                <div class="fingerprint-header">
+
+                    <h2>
+                        Fingerprint Verification
+                    </h2>
+
+                    <p>
+                        Verify the selected family member
+                    </p>
+
+                </div>
+
+
+                <!-- Selected Member -->
+                <div class="selected-member">
+
+                    <span>
+                        Selected Member
+                    </span>
+
+                    <strong id="selectedMemberName">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <!-- Fingerprint Scanner -->
+                <div
+                    class="fingerprint-scanner"
+                    id="fingerprintScanner">
+
+                    <div class="fingerprint-icon">
+                        🖐️
+                    </div>
+
+                    <h3>
+                        Place Finger
+                    </h3>
+
+                    <p>
+                        Place the selected member's
+                        finger on the scanner
+                    </p>
+
+
+                    <button
+                        type="button"
+                        id="fingerprintButton">
+
+                        SCAN FINGERPRINT
+
+                    </button>
+
+                </div>
+
+
+                <!-- Fingerprint Scanning -->
+                <div
+                    class="fingerprint-scanning"
+                    id="fingerprintScanning">
+
+                    <div class="fingerprint-loader">
+                        🖐️
+                    </div>
+
+                    <h3>
+                        Scanning Fingerprint...
+                    </h3>
+
+                    <p>
+                        Please keep your finger steady
+                    </p>
+
+                </div>
+
+
+                <!-- Fingerprint Verification -->
+                <div
+                    class="fingerprint-verifying"
+                    id="fingerprintVerifying">
+
+                    <div class="verify-loader"></div>
+
+                    <h3>
+                        Verifying Fingerprint...
+                    </h3>
+
+                    <p>
+                        Matching biometric data
+                    </p>
+
+                </div>
+
+
+                <!-- Fingerprint Success -->
+                <div
+                    class="fingerprint-success"
+                    id="fingerprintSuccess">
+
+                    <div class="success-check">
+                        ✓
+                    </div>
+
+                    <h2>
+                        Fingerprint Verified!
+                    </h2>
+
+                    <p>
+                        Identity successfully verified.
+                    </p>
+
+                    <div class="success-animation">
+                        ✓ Identity Confirmed
+                    </div>
+
+                </div>
+
+
+                <!-- Fingerprint Wrong -->
+                <div
+                    class="fingerprint-error"
+                    id="fingerprintError">
+
+                    <div class="error-cross">
+                        ✕
+                    </div>
+
+                    <h2>
+                        Fingerprint Not Matched
+                    </h2>
+
+                    <p>
+                        The fingerprint does not match
+                        the selected family member.
+                    </p>
+
+                    <button
+                        type="button"
+                        id="retryFingerprint">
+
+                        TRY AGAIN
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
