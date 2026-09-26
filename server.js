@@ -14,6 +14,7 @@
 */
 
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
@@ -21,6 +22,7 @@ const cors = require('cors');
 const app = express();
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5500,http://127.0.0.1:3000,http://127.0.0.1:5500').split(',').map(origin => origin.trim()).filter(Boolean);
 
+app.use(express.static(path.join(__dirname)));
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -33,6 +35,10 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'API is healthy' });
