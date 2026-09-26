@@ -19,8 +19,24 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5500,http://127.0.0.1:3000,http://127.0.0.1:5500').split(',').map(origin => origin.trim()).filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
 app.use(express.json());
+
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, message: 'API is healthy' });
+});
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -68,7 +84,7 @@ app.get('/api/verify/:cardNumber', async (req, res) => {
     const card = cardRows[0];
 
     const [members] = await pool.query(
-      'SELECT member_id, name, age, relation FROM family_members WHERE card_id = ?',
+      'SELECT member_id, name, age, relation, photo_path FROM family_members WHERE card_id = ?',
       [card.card_id]
     );
 
@@ -103,7 +119,7 @@ app.get('/api/verify-rfid/:rfidTag', async (req, res) => {
     }
     const card = cardRows[0];
     const [members] = await pool.query(
-      'SELECT member_id, name, age, relation FROM family_members WHERE card_id = ?',
+      'SELECT member_id, name, age, relation, photo_path FROM family_members WHERE card_id = ?',
       [card.card_id]
     );
     res.json({
@@ -136,13 +152,14 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// ---------- 4. QUOTA (how much a card's category is entitled to) ----------
+// ---------- 4. QUOTA (how much a card's category is entitled to, with category-specific price overrides) ----------
 // GET /api/quota/:category   e.g. /api/quota/BPL
 app.get('/api/quota/:category', async (req, res) => {
   try {
     const { category } = req.params;
     const [rows] = await pool.query(
-      `SELECT cq.product_id, p.name, cq.monthly_quota, p.price_per_unit, p.unit
+      `SELECT cq.product_id, p.name, cq.monthly_quota, p.unit,
+              COALESCE(cq.price_override, p.price_per_unit) AS effective_price
        FROM category_quota cq
        JOIN products p ON cq.product_id = p.product_id
        WHERE cq.category = ?`,
@@ -168,6 +185,14 @@ app.post('/api/transaction', async (req, res) => {
 
     await connection.beginTransaction();
 
+    // Look up this card's category so we can apply any category-specific price overrides
+    // (e.g. AAY cards pay ₹13.50/kg for Sugar instead of the flat ₹25.00)
+    const [cardRows] = await connection.query(
+      'SELECT category FROM ration_cards WHERE card_id = ?',
+      [cardId]
+    );
+    const cardCategory = cardRows.length > 0 ? cardRows[0].category : null;
+
     // First pass: work out how much of each item can actually be dispensed,
     // factoring in any past pending dues for this card + product.
     const itemsToInsert = [];
@@ -180,7 +205,19 @@ app.post('/api/transaction', async (req, res) => {
       );
       if (productRows.length === 0) continue;
       const currentStock = parseFloat(productRows[0].stock_quantity);
-      const pricePerUnit = parseFloat(productRows[0].price_per_unit);
+      let pricePerUnit = parseFloat(productRows[0].price_per_unit);
+
+      // Check for a category-specific price override (e.g. AAY Sugar = ₹13.50)
+      if (cardCategory) {
+        const [overrideRows] = await connection.query(
+          `SELECT price_override FROM category_quota
+           WHERE category = ? AND product_id = ? AND price_override IS NOT NULL`,
+          [cardCategory, item.productId]
+        );
+        if (overrideRows.length > 0) {
+          pricePerUnit = parseFloat(overrideRows[0].price_override);
+        }
+      }
 
       // Include any earlier unfulfilled due for this card + product in what's owed now
       const [dueRows] = await connection.query(
@@ -288,5 +325,168 @@ app.get('/api/dues/:cardId', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// ==================================================================
+//  RATIONX HARDWARE CONTRACT
+//  Polling-based endpoints matching the ESP8266 bridge + website contract.
+//  These run ALONGSIDE the endpoints above (which still work fine for
+//  manual/browser testing without hardware plugged in).
+// ==================================================================
+
+// In-memory state - fine for a single physical unit / one transaction at a time,
+// per the contract's own note ("single row is fine").
+let latestScan = { found: false };
+let fpStatus = { status: 'pending' };
+let orderStatus = { currentGate: null, completedGates: [], allDone: false };
+let commandQueue = [];
+let activeOrderTotalItems = 0;
+
+// Gate numbers map to products in this fixed order (per the contract)
+const GATE_TO_PRODUCT_NAME = ['Rice', 'Wheat', 'Sugar', 'Dal', 'Oil']; // gate 4 = "Cooking Oil" in the doc, "Oil" in our products table
+
+async function getProductIdByGate(gate) {
+  const name = GATE_TO_PRODUCT_NAME[gate];
+  if (!name) return null;
+  const [rows] = await pool.query('SELECT product_id FROM products WHERE name = ?', [name]);
+  return rows.length > 0 ? rows[0].product_id : null;
+}
+
+// ---------- 1. CARD SCAN ----------
+// POST /api/scan   body: { "uid": "04A3B2C1" }   - called by the ESP8266
+app.post('/api/scan', async (req, res) => {
+  try {
+    const { uid } = req.body;
+    const [cardRows] = await pool.query(
+      'SELECT * FROM ration_cards WHERE rfid_tag = ?',
+      [uid]
+    );
+
+    if (cardRows.length === 0) {
+      latestScan = { found: false };
+      return res.json({ ok: true });
+    }
+
+    const card = cardRows[0];
+    const [members] = await pool.query(
+      'SELECT member_id, name, fingerprint_id, photo_path FROM family_members WHERE card_id = ?',
+      [card.card_id]
+    );
+
+    latestScan = {
+      found: true,
+      cardId: card.card_id,
+      cardNumber: card.card_number,
+      holderName: card.head_name,
+      cardType: card.category,
+      familyMembers: members.map(m => ({
+        memberId: m.member_id,
+        name: m.name,
+        fingerprintId: m.fingerprint_id,
+        photoPath: m.photo_path
+      }))
+    };
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/scan/latest   - polled by the website ~every 1.5s
+app.get('/api/scan/latest', (req, res) => {
+  res.json(latestScan);
+});
+
+// POST /api/scan/ack   - called by the website right after reading a result
+app.post('/api/scan/ack', (req, res) => {
+  latestScan = { found: false };
+  res.json({ ok: true });
+});
+
+// ---------- 2. FAMILY MEMBER SELECTION -> FINGERPRINT ----------
+// POST /api/select-member   body: { "memberId": 2, "fingerprintId": 4 }
+app.post('/api/select-member', (req, res) => {
+  const { memberId, fingerprintId } = req.body;
+  fpStatus = { status: 'pending' };
+  commandQueue.push({ cmd: 'START_FP', fingerprintId });
+  res.json({ ok: true });
+});
+
+// GET /api/fp-status   - polled by the website while showing "scan your fingerprint"
+app.get('/api/fp-status', (req, res) => {
+  res.json(fpStatus);
+});
+
+// ---------- 3. ORDER -> DISPENSING ----------
+// POST /api/order   body: { "items": [ { "gate": 0, "grams": 1000 }, ... ] }
+app.post('/api/order', async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!items || items.length === 0) {
+      return res.json({ status: 'fail' });
+    }
+
+    // Queue one DISPENSE command per item, then ALL_DONE at the end
+    items.forEach(item => {
+      commandQueue.push({ cmd: 'DISPENSE', gate: item.gate, grams: item.grams });
+    });
+    commandQueue.push({ cmd: 'ALL_DONE' });
+
+    activeOrderTotalItems = items.length;
+    orderStatus = {
+      currentGate: items[0].gate,
+      completedGates: [],
+      allDone: false
+    };
+
+    res.json({ status: 'ok' });
+  } catch (err) {
+    console.error(err);
+    res.json({ status: 'fail' });
+  }
+});
+
+// GET /api/order-status   - polled by the website while dispensing
+app.get('/api/order-status', (req, res) => {
+  res.json(orderStatus);
+});
+
+// ---------- 4. HARDWARE POLLING & REPORTING (used by the ESP8266 only) ----------
+// GET /api/device/next-command   - polled by the ESP8266 every ~1.5s
+app.get('/api/device/next-command', (req, res) => {
+  if (commandQueue.length === 0) {
+    return res.json({ cmd: 'NONE' });
+  }
+  const nextCommand = commandQueue.shift();
+  res.json(nextCommand);
+});
+
+// POST /api/device/report   body: { "event": "FP_OK"|"FP_FAIL"|"ITEM_DONE", ... }
+app.post('/api/device/report', (req, res) => {
+  const { event, gate } = req.body;
+
+  if (event === 'FP_OK') {
+    fpStatus = { status: 'ok' };
+  } else if (event === 'FP_FAIL') {
+    fpStatus = { status: 'fail' };
+  } else if (event === 'ITEM_DONE') {
+    orderStatus.completedGates.push(gate);
+    if (orderStatus.completedGates.length >= activeOrderTotalItems) {
+      orderStatus.allDone = true;
+      orderStatus.currentGate = null;
+    } else {
+      // advance currentGate to whichever queued DISPENSE command is still next
+      const nextDispense = commandQueue.find(c => c.cmd === 'DISPENSE');
+      orderStatus.currentGate = nextDispense ? nextDispense.gate : null;
+    }
+  }
+
+  res.json({ ok: true });
+});
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;

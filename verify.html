@@ -58,6 +58,15 @@
                     Place your smart card on the scanner
                 </p>
 
+                <input
+                    type="text"
+                    id="cardNumberInput"
+                    placeholder="Enter smart card number"
+                    style="width: 100%; margin-bottom: 16px; padding: 12px; border-radius: 8px; border: 1px solid #d9d9d9;"
+                >
+
+                <p id="cardErrorMessage" style="color: #a10000; min-height: 20px; margin-bottom: 8px;"></p>
+
                 <button
                     type="button"
                     id="scanButton">
@@ -98,63 +107,51 @@
                     SMART CARD DETAILS
                 </h3>
 
-
                 <div class="detail-row">
                     <span>Name</span>
-                    <strong>K. Kumar</strong>
+                    <strong id="cardHolderName">-</strong>
                 </div>
-
 
                 <div class="detail-row">
                     <span>Smart Card No.</span>
-                    <strong>1234 5678 9012</strong>
+                    <strong id="cardNumberValue">-</strong>
                 </div>
-
 
                 <div class="detail-row">
                     <span>Card Type</span>
-                    <strong>PHH</strong>
+                    <strong id="cardTypeValue">-</strong>
                 </div>
-
 
                 <div class="detail-row">
                     <span>Family Members</span>
-                    <strong>4</strong>
+                    <strong id="familyMembersValue">-</strong>
                 </div>
-
 
                 <div class="detail-row">
                     <span>Address</span>
-                    <strong>Tiruchirappalli, Tamil Nadu</strong>
+                    <strong id="cardAddressValue">-</strong>
                 </div>
-
 
                 <div class="detail-row">
                     <span>FPS Code</span>
-                    <strong>TRC-045</strong>
+                    <strong id="fpsCodeValue">-</strong>
                 </div>
-
 
                 <div class="detail-row">
                     <span>Status</span>
-                    <strong class="active-status">
+                    <strong id="cardStatusValue" class="active-status">
                         ACTIVE
                     </strong>
                 </div>
 
-
-                <!-- Continue Button -->
                 <button
                     type="button"
                     class="continue-btn"
                     id="continueButton">
-
                     CONTINUE
-
                 </button>
 
             </div>
-
 
             <!-- ========================= -->
             <!-- FAMILY MEMBERS SECTION -->
@@ -165,154 +162,11 @@
                 id="familySection">
 
                 <div class="family-header">
-
-                    <h2>
-                        Family Members
-                    </h2>
-
-                    <p>
-                        Select the member whose fingerprint
-                        you want to verify
-                    </p>
-
+                    <h2>Family Members</h2>
+                    <p>Select the member whose fingerprint you want to verify</p>
                 </div>
 
-
-                <!-- Family Member 1 -->
-                <div class="family-member">
-
-                    <div class="member-info">
-
-                        <div class="member-icon">
-                            👨
-                        </div>
-
-                        <div>
-                            <h3>
-                                K. Kumar
-                            </h3>
-
-                            <p>
-                                Head of Family
-                            </p>
-                        </div>
-
-                    </div>
-
-
-                    <button
-                        type="button"
-                        class="select-member"
-                        data-member="K. Kumar">
-
-                        SELECT
-
-                    </button>
-
-                </div>
-
-
-                <!-- Family Member 2 -->
-                <div class="family-member">
-
-                    <div class="member-info">
-
-                        <div class="member-icon">
-                            👩
-                        </div>
-
-                        <div>
-                            <h3>
-                                S. Priya
-                            </h3>
-
-                            <p>
-                                Wife
-                            </p>
-                        </div>
-
-                    </div>
-
-
-                    <button
-                        type="button"
-                        class="select-member"
-                        data-member="S. Priya">
-
-                        SELECT
-
-                    </button>
-
-                </div>
-
-
-                <!-- Family Member 3 -->
-                <div class="family-member">
-
-                    <div class="member-info">
-
-                        <div class="member-icon">
-                            👦
-                        </div>
-
-                        <div>
-                            <h3>
-                                R. Rahul
-                            </h3>
-
-                            <p>
-                                Son
-                            </p>
-                        </div>
-
-                    </div>
-
-
-                    <button
-                        type="button"
-                        class="select-member"
-                        data-member="R. Rahul">
-
-                        SELECT
-
-                    </button>
-
-                </div>
-
-
-                <!-- Family Member 4 -->
-                <div class="family-member">
-
-                    <div class="member-info">
-
-                        <div class="member-icon">
-                            👧
-                        </div>
-
-                        <div>
-                            <h3>
-                                K. Divya
-                            </h3>
-
-                            <p>
-                                Daughter
-                            </p>
-                        </div>
-
-                    </div>
-
-
-                    <button
-                        type="button"
-                        class="select-member"
-                        data-member="K. Divya">
-
-                        SELECT
-
-                    </button>
-
-                </div>
-
+                <div id="familyMemberList"></div>
             </div>
 
 

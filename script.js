@@ -22,12 +22,13 @@ if (currentPage === "index.html" || currentPage === "") {
 
 const loginForm =
     document.getElementById("loginForm");
+const API_BASE_URL = window.location.origin;
 
 if (loginForm) {
 
     loginForm.addEventListener(
         "submit",
-        function (event) {
+        async function (event) {
 
             event.preventDefault();
 
@@ -40,34 +41,40 @@ if (loginForm) {
             const errorMessage =
                 document.getElementById("errorMessage");
 
+            if (!userId || !password) {
+                errorMessage.textContent = "Please enter User ID and Password.";
+                return;
+            }
 
-            // Dummy users
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: userId,
+                        password: password
+                    })
+                });
 
-            const users = {
+                const data = await response.json();
 
-                "user001": "ration123",
-                "user002": "smart456",
-                "user003": "demo789"
-
-            };
-
-
-            if (users[userId] === password) {
+                if (!response.ok || !data.success) {
+                    errorMessage.textContent = data.error || 'Invalid User ID or Password!';
+                    return;
+                }
 
                 localStorage.setItem(
                     "loggedInUser",
-                    userId
+                    data.user.username || userId
                 );
 
                 window.location.replace(
                     "verify.html"
                 );
-
-            } else {
-
-                errorMessage.textContent =
-                    "Invalid User ID or Password!";
-
+            } catch (error) {
+                errorMessage.textContent = 'Login failed. Please try again later.';
             }
 
         }
@@ -133,48 +140,161 @@ const continueButton =
 const familySection =
     document.getElementById("familySection");
 
+const cardNumberInput =
+    document.getElementById("cardNumberInput");
+
+const cardErrorMessage =
+    document.getElementById("cardErrorMessage");
+
+const familyMemberList =
+    document.getElementById("familyMemberList");
+
+const cardHolderName =
+    document.getElementById("cardHolderName");
+
+const cardNumberValue =
+    document.getElementById("cardNumberValue");
+
+const cardTypeValue =
+    document.getElementById("cardTypeValue");
+
+const familyMembersValue =
+    document.getElementById("familyMembersValue");
+
+const cardAddressValue =
+    document.getElementById("cardAddressValue");
+
+const fpsCodeValue =
+    document.getElementById("fpsCodeValue");
+
+const cardStatusValue =
+    document.getElementById("cardStatusValue");
+
 
 // Initially hide family section
 
 if (familySection) {
+    familySection.style.display = "none";
+}
 
-    familySection.style.display =
-        "none";
 
+function renderFamilyMembers(members) {
+    if (!familyMemberList) return;
+
+    familyMemberList.innerHTML = "";
+
+    members.forEach((member) => {
+        const memberCard = document.createElement("div");
+        memberCard.className = "family-member";
+
+        memberCard.innerHTML = `
+            <div class="member-info">
+                <div class="member-icon">👤</div>
+                <div>
+                    <h3>${member.name || 'Family Member'}</h3>
+                    <p>${member.relation || 'Family Member'}</p>
+                </div>
+            </div>
+            <button
+                type="button"
+                class="select-member"
+                data-member-id="${member.member_id || ''}"
+                data-fingerprint-id="${member.fingerprint_id || ''}"
+                data-member="${member.name || 'Family Member'}"
+            >
+                SELECT
+            </button>
+        `;
+
+        familyMemberList.appendChild(memberCard);
+    });
+
+    document.querySelectorAll(".select-member").forEach((button) => {
+        button.addEventListener("click", function () {
+            const member = button.getAttribute("data-member");
+            const memberId = button.getAttribute("data-member-id");
+            const fingerprintId = button.getAttribute("data-fingerprint-id");
+
+            localStorage.setItem("selectedMember", member);
+            localStorage.setItem("selectedMemberId", memberId || '');
+            localStorage.setItem("selectedFingerprintId", fingerprintId || '');
+
+            const selectedMemberName = document.getElementById("selectedMemberName");
+            if (selectedMemberName) {
+                selectedMemberName.textContent = member;
+            }
+
+            if (familySection) {
+                familySection.style.display = "none";
+            }
+
+            const fingerprintSection = document.getElementById("fingerprintSection");
+            if (fingerprintSection) {
+                fingerprintSection.style.display = "block";
+            }
+        });
+    });
 }
 
 
 if (scanButton) {
+    scanButton.addEventListener("click", async function () {
+        let cardNumber = cardNumberInput ? cardNumberInput.value.trim() : "";
 
-    scanButton.addEventListener(
-        "click",
-        function () {
-
-            scanArea.style.display =
-                "none";
-
-            scanningMessage.style.display =
-                "block";
-
-
-            // Simulated smart card scan
-
-            setTimeout(
-                function () {
-
-                    scanningMessage.style.display =
-                        "none";
-
-                    cardDetails.style.display =
-                        "block";
-
-                },
-                2000
-            );
-
+        if (!cardNumber) {
+            cardNumber = window.prompt("Please enter the smart card number:");
         }
-    );
 
+        if (!cardNumber) {
+            if (cardErrorMessage) {
+                cardErrorMessage.textContent = "A card number is required.";
+            }
+            return;
+        }
+
+        if (scanArea) scanArea.style.display = "none";
+        if (scanningMessage) scanningMessage.style.display = "block";
+        if (cardErrorMessage) cardErrorMessage.textContent = "";
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/verify/${encodeURIComponent(cardNumber)}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.cardNumber) {
+                throw new Error(data.error || "Card not found");
+            }
+
+            localStorage.setItem("selectedCardId", data.cardId || "");
+            localStorage.setItem("selectedCardNumber", data.cardNumber || cardNumber);
+
+            if (cardHolderName) cardHolderName.textContent = data.name || "-";
+            if (cardNumberValue) cardNumberValue.textContent = data.cardNumber || "-";
+            if (cardTypeValue) cardTypeValue.textContent = data.cardType || "-";
+            if (familyMembersValue) familyMembersValue.textContent = data.familyMembers || 0;
+            if (cardAddressValue) cardAddressValue.textContent = data.address || "-";
+            if (fpsCodeValue) fpsCodeValue.textContent = data.fpsCode || "N/A";
+            if (cardStatusValue) cardStatusValue.textContent = data.status || "ACTIVE";
+
+            if (Array.isArray(data.members)) {
+                renderFamilyMembers(data.members);
+            }
+
+            if (familySection) {
+                familySection.style.display = "block";
+            }
+
+            if (cardDetails) {
+                cardDetails.style.display = "block";
+            }
+        } catch (error) {
+            if (cardErrorMessage) {
+                cardErrorMessage.textContent = error.message || "Unable to verify card.";
+            }
+            if (scanArea) scanArea.style.display = "block";
+        } finally {
+            if (scanningMessage) scanningMessage.style.display = "none";
+        }
+    });
 }
 
 
@@ -183,29 +303,15 @@ if (scanButton) {
 // =========================
 
 if (continueButton) {
-
-    continueButton.addEventListener(
-        "click",
-        function () {
-
-            // Hide card details
-
-            cardDetails.style.display =
-                "none";
-
-
-            // Show family members
-
-            if (familySection) {
-
-                familySection.style.display =
-                    "block";
-
-            }
-
+    continueButton.addEventListener("click", function () {
+        if (cardDetails) {
+            cardDetails.style.display = "none";
         }
-    );
 
+        if (familySection) {
+            familySection.style.display = "block";
+        }
+    });
 }
 
 
@@ -213,87 +319,15 @@ if (continueButton) {
 // FAMILY MEMBER SELECTION
 // =========================
 
-const memberButtons =
-    document.querySelectorAll(
-        ".select-member"
-    );
-
 const fingerprintSection =
-    document.getElementById(
-        "fingerprintSection"
-    );
+    document.getElementById("fingerprintSection");
 
 const selectedMemberName =
-    document.getElementById(
-        "selectedMemberName"
-    );
-
-
-// Initially hide fingerprint section
+    document.getElementById("selectedMemberName");
 
 if (fingerprintSection) {
-
-    fingerprintSection.style.display =
-        "none";
-
+    fingerprintSection.style.display = "none";
 }
-
-
-memberButtons.forEach(
-    function (button) {
-
-        button.addEventListener(
-            "click",
-            function () {
-
-                const member =
-                    button.getAttribute(
-                        "data-member"
-                    );
-
-
-                // Save selected member
-
-                localStorage.setItem(
-                    "selectedMember",
-                    member
-                );
-
-
-                // Display selected member
-
-                if (selectedMemberName) {
-
-                    selectedMemberName.textContent =
-                        member;
-
-                }
-
-
-                // Hide family section
-
-                if (familySection) {
-
-                    familySection.style.display =
-                        "none";
-
-                }
-
-
-                // Show fingerprint section
-
-                if (fingerprintSection) {
-
-                    fingerprintSection.style.display =
-                        "block";
-
-                }
-
-            }
-        );
-
-    }
-);
 
 
 // =========================
@@ -374,81 +408,65 @@ if (fingerprintError) {
 // =========================
 
 if (fingerprintButton) {
+    fingerprintButton.addEventListener("click", async function () {
+        const selectedMemberId = localStorage.getItem("selectedMemberId");
+        const selectedFingerprintId = localStorage.getItem("selectedFingerprintId") || "0";
 
-    fingerprintButton.addEventListener(
-        "click",
-        function () {
-
-            // Hide scanner
-
-            fingerprintScanner.style.display =
-                "none";
-
-
-            // Show scanning animation
-
-            fingerprintScanning.style.display =
-                "block";
-
-
-            // Simulate fingerprint scanning
-
-            setTimeout(
-                function () {
-
-                    fingerprintScanning.style.display =
-                        "none";
-
-
-                    // Show verification
-
-                    fingerprintVerifying.style.display =
-                        "block";
-
-
-                    // Simulate verification
-
-                    setTimeout(
-                        function () {
-
-                            fingerprintVerifying.style.display =
-                                "none";
-
-
-                            /*
-                             * DEMO MODE
-                             *
-                             * For now fingerprint is
-                             * simulated as correct.
-                             */
-
-                            const fingerprintMatched =
-                                true;
-
-
-                            if (
-                                fingerprintMatched
-                            ) {
-
-                                showFingerprintSuccess();
-
-                            } else {
-
-                                showFingerprintError();
-
-                            }
-
-                        },
-                        2000
-                    );
-
-                },
-                2500
-            );
-
+        if (!selectedMemberId) {
+            showFingerprintError();
+            return;
         }
-    );
 
+        if (fingerprintScanner) fingerprintScanner.style.display = "none";
+        if (fingerprintScanning) fingerprintScanning.style.display = "block";
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/select-member`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    memberId: Number(selectedMemberId),
+                    fingerprintId: Number(selectedFingerprintId)
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Fingerprint request failed');
+            }
+
+            if (fingerprintScanning) fingerprintScanning.style.display = "none";
+            if (fingerprintVerifying) fingerprintVerifying.style.display = "block";
+
+            const deadline = Date.now() + 20000;
+            while (Date.now() < deadline) {
+                const statusResponse = await fetch(`${API_BASE_URL}/api/fp-status`);
+                const statusData = await statusResponse.json();
+
+                if (statusData.status === 'ok') {
+                    if (fingerprintVerifying) fingerprintVerifying.style.display = "none";
+                    showFingerprintSuccess();
+                    return;
+                }
+
+                if (statusData.status === 'fail') {
+                    if (fingerprintVerifying) fingerprintVerifying.style.display = "none";
+                    showFingerprintError();
+                    return;
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 1200));
+            }
+
+            if (fingerprintVerifying) fingerprintVerifying.style.display = "none";
+            showFingerprintError();
+        } catch (error) {
+            if (fingerprintScanning) fingerprintScanning.style.display = "none";
+            if (fingerprintVerifying) fingerprintVerifying.style.display = "none";
+            showFingerprintError();
+        }
+    });
 }
 
 
@@ -743,17 +761,31 @@ if (paymentButton) {
             }
 
 
+            const productCatalog = {
+                rice: { productId: 1, price: 2 },
+                wheat: { productId: 2, price: 3 },
+                sugar: { productId: 3, price: 25 },
+                dal: { productId: 4, price: 20 },
+                oil: { productId: 5, price: 50 }
+            };
+
+            const normalizedItems = {};
+            Object.keys(selectedItems).forEach((key) => {
+                normalizedItems[key] = {
+                    ...productCatalog[key],
+                    quantity: selectedItems[key]
+                };
+            });
+
             localStorage.setItem(
                 "selectedCommodities",
-                JSON.stringify(selectedItems)
+                JSON.stringify(normalizedItems)
             );
-
 
             localStorage.setItem(
                 "totalAmount",
                 total
             );
-
 
             window.location.href =
                 "payment.html";
@@ -902,39 +934,57 @@ if (
 // =========================
 
 if (confirmPaymentButton) {
+    confirmPaymentButton.addEventListener("click", async function () {
+        const selectedCommodities = JSON.parse(localStorage.getItem("selectedCommodities") || '{}');
+        const totalAmount = Number(localStorage.getItem("totalAmount") || 0);
+        const cardId = Number(localStorage.getItem("selectedCardId") || 1);
+        const memberId = Number(localStorage.getItem("selectedMemberId") || 1);
+        const workerId = Number(localStorage.getItem("loggedInUser") || 1);
 
-    confirmPaymentButton.addEventListener(
-        "click",
-        function () {
+        const items = Object.entries(selectedCommodities).map(([key, value]) => ({
+            productId: Number(value.productId || 1),
+            quantityOrdered: Number(value.quantity || 0),
+            pricePerUnit: Number(value.price || 0)
+        })).filter(item => item.quantityOrdered > 0);
 
-            confirmPaymentButton.style.display =
-                "none";
-
-
-            paymentMessage.style.display =
-                "block";
-
-            paymentMessage.textContent =
-                "Verifying payment...";
-
-
-            setTimeout(
-                function () {
-
-                    paymentMessage.style.display =
-                        "none";
-
-
-                    paymentSuccess.style.display =
-                        "block";
-
-                },
-                1500
-            );
-
+        if (items.length === 0) {
+            paymentMessage.textContent = 'No commodities selected.';
+            return;
         }
-    );
 
+        confirmPaymentButton.style.display = "none";
+        paymentMessage.style.display = "block";
+        paymentMessage.textContent = "Verifying payment...";
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/transaction`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    cardId,
+                    memberId,
+                    workerId,
+                    paymentMethod: 'upi',
+                    amountReceived: totalAmount,
+                    items
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Transaction failed');
+            }
+
+            paymentMessage.style.display = "none";
+            paymentSuccess.style.display = "block";
+        } catch (error) {
+            paymentMessage.textContent = error.message || 'Payment verification failed.';
+            confirmPaymentButton.style.display = "block";
+        }
+    });
 }
 
 
